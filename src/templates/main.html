@@ -1,0 +1,21 @@
+<header ng-controller="userInfoController">
+    <ul >
+        <li class="l f20  ">鹦鹉美家快捷收款管理系统</li>
+        <li class="r f12 c-999 "> 当前用户: {{userName}} <i class="c-999 ml10">|</i><a ng-click="logout()" class="cursor"><i class="iconfont ml10  ">&#xe605;</i>退出系统</a></li>
+        <!-- <li class="r mailIcon" ng-click="showMail()"><span></span></li> -->
+    </ul>
+</header>
+
+<aside>
+    <menu  class="menus" >
+        <dl ng-repeat="m in menus.menus" on-menus-finished>
+            <dt class="no-b"><i class="iconfont" style="margin-right: 5px"> </i>{{m.name}}</dt>
+            <dd class="lh200">
+                <a ng-repeat="j in m.childs" ui-sref="{{j.url}}">{{j.name}}</a>
+            </dd>
+        </dl>
+    </menu>
+</aside>
+
+<article ui-view=""></article>
+

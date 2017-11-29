@@ -1,0 +1,160 @@
+<div class="crumbs">
+	<h3>交易列表</h3>
+	<p>
+		<a ui-sref="main.fast-pay">快捷收款</a> > 交易列表</p>
+</div>
+
+<div class="content-box">
+	<div class="form-inline form-group">
+		<!-- add -->
+		<select class="form-control input-sm " ng-init="transactionStatu=[{code:0,desc:'已下单'},{code:1,desc:'处理中'},{code:2,desc:'失败'},{code:3,desc:'成功'},{code:4,desc:'已手动处理'}]" ng-options="v.code as v.desc for v in transactionStatu" ng-model="list.transactionStatus">
+			<option value="">--到账状态--</option>
+		</select>
+
+		<div class="float-right">
+			<div class="input-append date form_datetime_start inline-block">
+				<i class="add-on pa mt30"><i class="icon-th"></i></i>
+				<input class=" form-control input-sm" size="16" placeholder="交易开始时间段" type="text" onkeyup="this.value=''" id="beginTime">
+			</div> ----
+			<div class="input-append date form_datetime_end inline-block">
+				<i class="add-on pa mt30"><i class="icon-th"></i></i>
+				<input class=" form-control input-sm" size="16" type="text" placeholder="交易结束时间段" onkeyup="this.value=''" id="endTime">
+			</div>
+			<input type="hidden" ng-class="{err:!dateThan==''}">
+			<i class="f12 c-red">{{dateThan}}</i>
+			<input style="width: 100px;" type="text" class="form-control input-sm" placeholder="姓名" maxlength="30" size="30" ng-model="list.searchKey">
+			<div class="inline-block f12 ">
+				<button type="button" class="btn btn-primary btn-sm  input-sm " ng-click="submitSearch(list)">查询</button>
+				<button type="button" class="btn btn-primary btn-sm  input-sm " ng-click="createExcel(list)">一键生成Excel表</button>
+			</div>
+		</div>
+	</div>
+
+	<table class=" table   table-hover table-condensed  table-striped text-center ">
+		<thead style="background:#8A8BC4; color: #fff">
+			<tr>
+				<td>ID</td>
+				<td>订单号</td>
+				<td>收款人</td>
+				<td>收款银行卡信息</td>
+				<td>银行预留手机号</td>
+				<td>收款金额</td>
+				<td>到账金额</td>
+				<td>交易时间</td>
+				<td>成功时间</td>
+				<td>到账状态</td>
+				<td>操作</td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr ng-repeat="g in grid.result">
+				<td>{{g.id}}</td>
+				<td>{{g.recordNum}}</td>
+				<td>{{g.inCardInfo.name}}</td>
+				<td>{{g.inCardInfo.bankName}} <i ng-show="g.inCardInfo.cardNO">（{{g.inCardInfo.cardNO | space4}}）</i></td><!-- 收款银行卡信息 -->
+				<td>{{g.inCardInfo.mobilePhone}}</td>
+				<td>{{g.amount.toFixed(2)}}</td><!-- 收款金额 -->
+				<td>{{g.arrivalAmount?g.arrivalAmount.toFixed(2):"0.00"}}</td><!-- 到账金额 -->
+				<td>{{g.payDate |date:'yyyy-MM-dd HH:mm:ss'}}</td><!-- 交易时间 -->
+				<td>{{g.completeDate |date:'yyyy-MM-dd HH:mm:ss'}}</td><!-- 成功时间 -->
+				<td>{{g.statusDesc}}</td>
+				<td>
+					<button class="btn btn-danger btn-xs" ng-if="g.status===2" ng-click="againStart(g.id)">重新发起结算</button>
+					<button class="btn btn-success btn-xs ml10" ng-if="g.status===2" ng-click="manualProcessing(g)">手动处理结算</button>
+					<button class="btn btn-primary btn-xs" ng-if="g.status===4" ng-click="lookManualProcessing(g.id)">查看手动结算凭证</button>
+				</td>
+			</tr>
+			<tr ng-if="!grid.result">
+				<td colspan="9" class="f12 c-999 ">没有相关数据!</td>
+			</tr>
+		</tbody>
+	</table>
+	<div ng-include="'/templates/partial/page.html'" style="height: 50px;background-color: #f4f4f6"></div>
+</div>
+
+<!--dialog 手动处理结算-->
+<div class="modal fade createDialog-manualProcessing">
+	<div class="modal-dialog " style="width: 750px">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">手动处理结算</h4>
+			</div>
+			<div class="modal-body">
+				<div class="dialog-content ml20 ">
+					<dl class="  form-inline form-group">
+						<dd>
+							<span>结算金额：</span>{{pay.amount}}
+						</dd>
+						<dd>
+							<span>打款方式：</span>
+							<select class="form-control" ng-options="v.code as v.desc for v in payToolTypes" ng-model="pay.payMode " ng-required="true">
+								<option value="">--选择打款方式--</option>
+							</select>
+						</dd>
+						<dd>
+							<span class="v-top">打款凭证：</span>
+							<div class="inline-block">
+								<button type="button" class="btn btn-info " id="upPhotosBtn"> 上传图片 <i></i></button>
+								<i class=" f12 c-999 ml10">(图片比例不限、图片宽度1000像素以上； 建议大小1MB-10MB之间)</i>
+								<div class="img-show-box create-dialog"></div>
+								<input type="hidden" ng-model="pay.voucher" />
+							</div>
+						</dd>
+						<dd>
+							<span>备注：</span>
+							<input type="text" class="form-control " maxlength="50" size="50" placeholder="50字以内" ng-model="pay.remark" /> <i class=" f12 c-999 ml10">（选填）</i>
+						</dd>
+						<p class="text-center c-red f12 "> <i class="loading f12 c-green block"></i>{{pay.errorMsg}}</p>
+					</dl>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary " ng-click="createDialogSumbitPay(pay)">提交</button>
+			</div>
+		</div>
+		<!-- /.modal-content -->
+	</div>
+	<!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
+
+<!--dialog 查看手动结算凭证-->
+<div class="modal fade createDialog-lookManualProcessing">
+	<div class="modal-dialog " style="width: 500px">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">查看手动结算凭证</h4>
+			</div>
+			<div class="modal-body">
+				<div class="dialog-content ml20 ">
+					<dl class="  form-inline form-group">
+
+						<dd>
+							<span class=" f14 c-666 lh200">结算金额：</span>{{manualProcessingInfo.amount}}
+						</dd>
+						<dd>
+							<span class=" f14 c-666 lh200">打款方式：</span>{{manualProcessingInfo.payModeDesc}}
+						</dd>
+						<dd style="display: flex;align-items: center;">
+							<span class=" f14 c-666 lh200">打款凭证：</span>
+							<a ng-if="manualProcessingInfo.voucher" ng-href="{{manualProcessingInfo.voucher}}" target="_blank"><img  width="150" ng-src="{{manualProcessingInfo.voucher}}" alt=""></a>
+
+						</dd>
+						<dd>
+							<span class=" f14 c-666 lh200"><i style="letter-spacing: 2em;">备</i>注：</span>{{manualProcessingInfo.remark}}
+						</dd>
+					</dl>
+
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary " ng-click="close()">确定</button>
+			</div>
+		</div>
+		<!-- /.modal-content -->
+	</div>
+	<!-- /.modal-dialog -->
+</div>
+<!-- /.modal -->
